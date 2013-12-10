@@ -51,6 +51,7 @@ videojs.Ooyala = videojs.MediaTechController.extend({
     this.el_.onload = function() { self.onLoad(); };
 
     this.contentId = player.options()['contentId'];
+    this.playerId = player.options()['playerId'];
     this.isReady_ = false;
 
     if (videojs.Ooyala.apiReady){
@@ -77,19 +78,46 @@ videojs.Ooyala = videojs.MediaTechController.extend({
         }, 100);
       }
 
-      var playerId = player.options()['playerId'];
-      var src = '//player.ooyala.com/v3/' + playerId + '?platform=html5-priority';
+      function waitForScript(test, callback) {
+        var callbackTimer = setInterval(function() {
+          var call = false;
+
+          try {
+            call = test.call();
+          } catch (e) {}
+
+          if (call) {
+            clearInterval(callbackTimer);
+            callback.call();
+          }
+        }, 100);
+      }
+
+      var src = '//player.ooyala.com/v3/' + this.playerId + '?platform=html5-priority';
 
       // If we are not on a server, don't specify the origin (it will crash)
       if (window.location.protocol == 'file:'){
         src = 'http:' + src;
       }
 
-      loadExtScript(src, function() {
-        return OO;
-      }, function() {
-        videojs.Ooyala.loadOoyala(this);
-      }.bind(this));
+      // TODO: Confirm what happens with multiple players.
+      if (videojs.Ooyala.apiLoading === undefined) {
+        videojs.Ooyala.apiLoading = true;
+
+        loadExtScript(src, function() {
+          return OO;
+        }, function() {
+          videojs.Ooyala.apiReady = true;
+          videojs.Ooyala.loadOoyala(this);
+        }.bind(this));
+      } else {
+        waitForScript(function() {
+          return OO;
+        }, function() {
+          videojs.Ooyala.apiReady = true;
+          videojs.Ooyala.loadOoyala(this);
+        }.bind(this));
+      }
     }
   }
 });
@@ -103,8 +131,8 @@ videojs.Ooyala.prototype.dispose = function(){
 videojs.Ooyala.prototype.load = function(){};
 videojs.Ooyala.prototype.play = function(){};
 videojs.Ooyala.prototype.pause = function(){};
-videojs.Ooyala.prototype.paused = function(){ return false; };
-videojs.Ooyala.prototype.currentTime = function(){ return 0; };
+videojs.Ooyala.prototype.paused = function(){ return (this.ooyalaInfo.state == OoyalaState.PAUSED); };
+videojs.Ooyala.prototype.currentTime = function(){ return this.ooyalaInfo.time; };
 videojs.Ooyala.prototype.setCurrentTime = function(seconds){};
 videojs.Ooyala.prototype.duration = function(){ return this.ooyalaInfo.duration; };
 videojs.Ooyala.prototype.volume = function(){ return 0; };
@@ -130,26 +158,34 @@ videojs.Ooyala.canControlVolume = function(){ return true; };
 videojs.Ooyala.loadOoyala = function(player){
   var dom_id = player.player_el_.id;
   var contentId = player.contentId;
+  var playerId = player.playerId;
+  var messageBus = 'vjs-ooyala-' + dom_id + '-' + player.playerId + '-' + contentId;
 
   OO.ready(function() {
     var ooPlayer = OO.Player.create(dom_id, contentId, {
       onCreate: function(ooPlayer) {
-        ooPlayer.subscribe('*', 'vjs-ooyala', function(eventName) {
+        ooPlayer.subscribe('*', messageBus, function(eventName) {
           // Player embedded parameters go here
         });
 
-        ooPlayer.subscribe("error", "vjs-ooyala", function(eventName, payload) {
+        ooPlayer.subscribe('error', messageBus, function(eventName, payload) {
           // console.error(eventName + ": " + payload);
           player.onError(eventName + ": " + payload)
         });
 
-        ooPlayer.subscribe('playheadTimeChanged', 'vjs-ooyala', function() {
-          // getBufferedLength() and getPlayheadTime() don't return logically values.
-          // player.ooyalaInfo.buffered = ooPlayer.getBufferLength();
-          // player.ooyalaInfo.time = ooPlayer.getPlayheadTime();
+        ooPlayer.subscribe('playheadTimeChanged', messageBus, function() {
+          if (player.ooyalaInfo.duration) {
+            var buffered = (ooPlayer.getBufferLength() / player.ooyalaInfo.duration);
 
-          var currentTime = 0;
-          player.onPlayProgress(currentTime);
+            if (buffered > 1) {
+              player.ooyalaInfo.buffered = 1;
+            } else {
+              player.ooyalaInfo.buffered = buffered;
+            }
+          }
+
+          var playheadTime = ooPlayer.getPlayheadTime();
+          player.onPlayProgress(playheadTime);
         });
 
         // ooPlayer.subscribe('bitrateInfoAvailable', 'vjs-ooyala', function(eventName) {
@@ -161,7 +197,7 @@ videojs.Ooyala.loadOoyala = function(player){
         //   }
         // });
 
-        ooPlayer.subscribe('playbackReady', 'vjs-ooyala', function() {
+        ooPlayer.subscribe('playbackReady', messageBus, function() {
           // console.log("Title is: " + ooPlayer.getTitle());
           // console.log("Description is: " + ooPlayer.getDescription());
 
@@ -181,20 +217,20 @@ videojs.Ooyala.loadOoyala = function(player){
           player.onReady();
         });
 
-        ooPlayer.subscribe('paused', 'vjs-ooyala', function() {
+        ooPlayer.subscribe('paused', messageBus, function() {
           player.onPause();
         });
 
-        ooPlayer.subscribe('play', 'vjs-ooyala', function() {
+        ooPlayer.subscribe('play', messageBus, function() {
           player.onPlay();
         });
 
-        ooPlayer.subscribe('seekStream', 'vjs-ooyala', function() {
-          var seek_seconds = 0; // Not sure how to get this from Ooyala
-          player.onSeek(seek_seconds);
+        ooPlayer.subscribe('seekStream', messageBus, function() {
+          var playheadTime = ooPlayer.getPlayheadTime();
+          player.onSeek(playheadTime);
         });
 
-        ooPlayer.subscribe('played', 'vjs-ooyala', function() {
+        ooPlayer.subscribe('played', messageBus, function() {
           player.onEnded();
         });
       },
@@ -205,7 +241,6 @@ videojs.Ooyala.loadOoyala = function(player){
 }
 
 videojs.Ooyala.prototype.onReady = function(){
-  videojs.Ooyala.apiReady = true;
   this.isReady_ = true;
   this.triggerReady();
 };
@@ -226,6 +261,7 @@ videojs.Ooyala.prototype.onPlay = function(){
 };
 
 videojs.Ooyala.prototype.onPlayProgress = function(seconds){
+  this.ooyalaInfo.time = seconds;
   this.player_.trigger('timeupdate');
 };
 
@@ -234,8 +270,8 @@ videojs.Ooyala.prototype.onEnded = function(){
   this.player_.trigger('ended');
 };
 
-videojs.Ooyala.prototype.onSeek = function(seek_seconds){
-  this.ooyalaInfo.time = seek_seconds;
+videojs.Ooyala.prototype.onSeek = function(seconds){
+  this.ooyalaInfo.time = seconds;
   this.player_.trigger('timeupdate');
   this.player_.trigger('seeked');
 };
