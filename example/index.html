@@ -4,15 +4,24 @@
   <link href="../lib/video-js.min.css" rel="stylesheet" />
 </head>
 <body>
-  <video id="video" class="video-js vjs-default-skin" controls autoplay preload="auto" width="640" height="360">
+  <video id="video1" class="video-js vjs-default-skin" controls autoplay preload="auto" width="640" height="360">
+  </video>
+  <br />
+
+  <video id="video2" src="" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360" data-setup='{ "techOrder": ["ooyala"], "playerId": "e18ab1da1813483499554ea2d8e67fbd", "contentId": "w3ZHc0Njr33Tdp-RRcwfZMjaOrmzOP82", "type": "video/ooyala", "loop": true, "autoplay": false }'>
+    <p>Video Playback Not Supported</p>
   </video>
   
   <script src="../lib/video.dev.js"></script>
-  <script src="../vjs.ooyala.js"></script>
-  <!--script src="../src/media.ooyala.js"></script-->
+  <!--script src="../vjs.ooyala.js"></script-->
+  <script src="../src/media.ooyala.js"></script>
 
   <script>
-    videojs('video', { "techOrder": ["ooyala"], "playerId": 'e18ab1da1813483499554ea2d8e67fbd', "contentId": "w3ZHc0Njr33Tdp-RRcwfZMjaOrmzOP82", "type": "video/ooyala"});
+    videojs('video1', { "techOrder": ["ooyala"], "playerId": 'e18ab1da1813483499554ea2d8e67fbd', "contentId": "w3ZHc0Njr33Tdp-RRcwfZMjaOrmzOP82", "type": "video/ooyala"}, function() {
+      this.on('pause', function() {
+        document.body.style.backgroundColor = 'red';
+      });
+    });
   </script>
 </body>
 </html>
