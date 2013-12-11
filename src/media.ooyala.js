@@ -245,7 +245,7 @@ videojs.Ooyala.loadOoyala = function(player){
           player.onEnded();
         });
       },
-      autoplay: true,
+      autoplay: player.player_.options()['autoplay'] || false,
       wmode: 'opaque',
     });
   });
