@@ -123,8 +123,10 @@ videojs.Ooyala = videojs.MediaTechController.extend({
 });
 
 videojs.Ooyala.prototype.dispose = function(){
-  this.ooyala.dispose();
-  this.el_.parentNode.removeChild(this.el_);
+  if (this.ooyala) {
+    this.ooyala.destroy();
+  }
+
   videojs.MediaTechController.prototype.dispose.call(this);
 };
 
