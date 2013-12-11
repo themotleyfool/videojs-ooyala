@@ -130,6 +130,15 @@ videojs.Ooyala.prototype.dispose = function(){
   videojs.MediaTechController.prototype.dispose.call(this);
 };
 
+videojs.Ooyala.prototype.src = function(contentId){
+  if (this.ooyala) {
+    this.ooyala.destroy();
+  }
+
+  this.contentId = contentId;
+  videojs.Ooyala.loadOoyala(this);
+};
+
 videojs.Ooyala.prototype.load = function(){};
 videojs.Ooyala.prototype.play = function(){};
 videojs.Ooyala.prototype.pause = function(){};
