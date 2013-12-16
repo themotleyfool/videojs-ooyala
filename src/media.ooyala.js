@@ -44,38 +44,36 @@ videojs.Ooyala = videojs.MediaTechController.extend({
 
     this.player_el_.insertBefore(this.el_, this.player_el_.firstChild);
 
-    this.ooyala = {};
+    this.ooyala = undefined;
     this.ooyalaInfo = {};
 
     var self = this;
     this.el_.onload = function() { self.onLoad(); };
 
-    this.contentId = player.options()['contentId'];
+    this.contentId = player.options()['src'];
     this.playerId = player.options()['playerId'];
     this.isReady_ = false;
 
-    if (videojs.Ooyala.apiReady){
-      videojs.Ooyala.loadOoyala(this);
+    if (videojs.Ooyala.apiReady) {
+        this.loadApi();
     } else {
-      function loadExtScript(src, test, callback) {
-        var tag = document.createElement('script');
-        tag.src = src;
+      // Add to the queue because the Ooyala API is not ready
+      videojs.Ooyala.loadingQueue.push(this);
 
+      // Load the Dailymotion API if it is the first Dailymotion video
+      if (!videojs.Ooyala.apiLoading) {
+        var tag = document.createElement('script');
+        var src = '//player.ooyala.com/v3/' + this.playerId + '?platform=html5-priority';
+        
+        // If we are not on a server, don't specify the origin (it will crash)
+        if (window.location.protocol == 'file:'){
+          src = 'http:' + src;
+        }
+
+        tag.src = src;
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-        var callbackTimer = setInterval(function() {
-          var call = false;
-
-          try {
-            call = test.call();
-          } catch (e) {}
-
-          if (call) {
-            clearInterval(callbackTimer);
-            callback.call();
-          }
-        }, 100);
+        videojs.Ooyala.apiLoading = true;
       }
 
       function waitForScript(test, callback) {
@@ -93,31 +91,19 @@ videojs.Ooyala = videojs.MediaTechController.extend({
         }, 100);
       }
 
-      var src = '//player.ooyala.com/v3/' + this.playerId + '?platform=html5-priority';
+      waitForScript(function() {
+        return OO;
+      }, function() {
+        var oo;
 
-      // If we are not on a server, don't specify the origin (it will crash)
-      if (window.location.protocol == 'file:'){
-        src = 'http:' + src;
-      }
+        while ((oo = videojs.Ooyala.loadingQueue.shift())) {
+            videojs.Ooyala.loadOoyala(oo);
+        }
 
-      // TODO: Confirm what happens with multiple players.
-      if (videojs.Ooyala.apiLoading === undefined) {
-        videojs.Ooyala.apiLoading = true;
-
-        loadExtScript(src, function() {
-          return OO;
-        }, function() {
-          videojs.Ooyala.apiReady = true;
-          videojs.Ooyala.loadOoyala(this);
-        }.bind(this));
-      } else {
-        waitForScript(function() {
-          return OO;
-        }, function() {
-          videojs.Ooyala.apiReady = true;
-          videojs.Ooyala.loadOoyala(this);
-        }.bind(this));
-      }
+        videojs.Ooyala.loadingQueue = [];
+        videojs.Ooyala.apiReady = true;
+        this.onReady();
+      }.bind(this));
     }
   }
 });
@@ -125,17 +111,19 @@ videojs.Ooyala = videojs.MediaTechController.extend({
 videojs.Ooyala.prototype.dispose = function(){
   if (this.ooyala) {
     this.ooyala.destroy();
+    delete this.ooyala;
   }
 
   videojs.MediaTechController.prototype.dispose.call(this);
 };
 
-videojs.Ooyala.prototype.src = function(contentId){
+videojs.Ooyala.prototype.src = function(src){
   if (this.ooyala) {
     this.ooyala.destroy();
+    delete this.ooyala;
   }
 
-  this.contentId = contentId;
+  this.contentId = src;
   videojs.Ooyala.loadOoyala(this);
 };
 
@@ -161,19 +149,26 @@ videojs.Ooyala.canPlaySource = function(srcObj){
   return (srcObj.type == 'video/ooyala');
 };
 
+// All videos created before Ooyala API is loaded
+videojs.Ooyala.loadingQueue = [];
+
 // Always can control the volume
 videojs.Ooyala.canControlVolume = function(){ return true; };
 
 ////////////////////////////// Ooyala specific functions //////////////////////////////
 
 videojs.Ooyala.loadOoyala = function(player){
-  var dom_id = player.player_el_.id;
+  var domId = player.player_el_.id;
   var contentId = player.contentId;
   var playerId = player.playerId;
-  var messageBus = 'vjs-ooyala-' + dom_id + '-' + player.playerId + '-' + contentId;
+  var messageBus = 'vjs-ooyala-' + domId + '-' + player.playerId + '-' + contentId;
+
+  if (!contentId) {
+    return;
+  }
 
   OO.ready(function() {
-    var ooPlayer = OO.Player.create(dom_id, contentId, {
+    var ooPlayer = OO.Player.create(domId, contentId, {
       onCreate: function(ooPlayer) {
         ooPlayer.subscribe('*', messageBus, function(eventName) {
           // Player embedded parameters go here
