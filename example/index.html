@@ -8,7 +8,7 @@
   </video>
   <br />
 
-  <video id="video2" src="" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360" data-setup='{ "techOrder": ["ooyala"], "playerId": "e18ab1da1813483499554ea2d8e67fbd", "contentId": "w3ZHc0Njr33Tdp-RRcwfZMjaOrmzOP82", "type": "video/ooyala", "loop": true, "autoplay": false }'>
+  <video id="video2" src="" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360" data-setup='{ "techOrder": ["ooyala"], "playerId": "e18ab1da1813483499554ea2d8e67fbd", "src": "w3ZHc0Njr33Tdp-RRcwfZMjaOrmzOP82", "type": "video/ooyala", "loop": true, "autoplay": false }'>
     <p>Video Playback Not Supported</p>
   </video>
   
@@ -17,7 +17,7 @@
   <script src="../src/media.ooyala.js"></script>
 
   <script>
-    videojs('video1', { "techOrder": ["ooyala"], "playerId": 'e18ab1da1813483499554ea2d8e67fbd', "contentId": "w3ZHc0Njr33Tdp-RRcwfZMjaOrmzOP82", "type": "video/ooyala"}, function() {
+    videojs('video1', { "techOrder": ["ooyala"], "playerId": 'e18ab1da1813483499554ea2d8e67fbd', "src": "w3ZHc0Njr33Tdp-RRcwfZMjaOrmzOP82", "type": "video/ooyala"}, function() {
       this.on('pause', function() {
         document.body.style.backgroundColor = 'red';
       });
