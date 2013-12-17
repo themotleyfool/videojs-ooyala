@@ -55,7 +55,7 @@ videojs.Ooyala = videojs.MediaTechController.extend({
     this.isReady_ = false;
 
     if (videojs.Ooyala.apiReady) {
-        this.loadApi();
+        videojs.Ooyala.loadOoyala(this);
     } else {
       // Add to the queue because the Ooyala API is not ready
       videojs.Ooyala.loadingQueue.push(this);
