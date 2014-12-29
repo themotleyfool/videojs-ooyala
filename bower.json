@@ -1,0 +1,26 @@
+{
+  "name": "videojs-ooyala",
+  "version": "0.0.1",
+  "homepage": "https://github.com/themotleyfool/videojs-ooyala",
+  "authors": [
+    "Adam Hill <ahill@fool.com>"
+  ],
+  "description": "Use Ooyala as a tech with video.js",
+  "main": "vjs.ooyala.js",
+  "keywords": [
+    "ooyala",
+    "video",
+    "video.js"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "videojs": "~4.11.3"
+  }
+}
