@@ -64,7 +64,7 @@ videojs.Ooyala = videojs.MediaTechController.extend({
       if (!videojs.Ooyala.apiLoading) {
         var tag = document.createElement('script');
         var src = '//player.ooyala.com/v3/' + this.playerId + '?platform=html5-priority';
-        
+
         // If we are not on a server, don't specify the origin (it will crash)
         if (window.location.protocol == 'file:'){
           src = 'http:' + src;
@@ -208,7 +208,7 @@ videojs.Ooyala.loadOoyala = function(player){
           // console.log("Description is: " + ooPlayer.getDescription());
 
           player.ooyala = ooPlayer;
-          
+
           player.ooyalaInfo = {
             state: OoyalaState.UNSTARTED,
             volume: 1,
@@ -241,6 +241,7 @@ videojs.Ooyala.loadOoyala = function(player){
         });
       },
       autoplay: player.player_.options()['autoplay'] || false,
+      loop: player.player_.options()['loop'] || false,
       wmode: 'opaque',
     });
   });
